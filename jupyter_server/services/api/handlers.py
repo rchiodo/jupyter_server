@@ -48,8 +48,17 @@ class APIStatusHandler(APIHandler):
         }
         self.finish(json.dumps(model, sort_keys=True))
 
+class LoggerHandler(APIHandler):
+    @web.authenticated
+    async def get(self):
+        model = {
+            'test': True
+        }
+        self.finish(json.dumps(model, sort_keys=True))
+
 
 default_handlers = [
     (r"/api/spec.yaml", APISpecHandler),
     (r"/api/status", APIStatusHandler),
+    (r"/api/logger", LoggerHandler),
 ]

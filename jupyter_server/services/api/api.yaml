@@ -645,6 +645,18 @@ paths:
           description: The current spec for the notebook server's APIs.
           schema:
               type: file
+  /api/logger:
+    get:
+      summary: Get a guid for talking to the logger
+      tags:
+        - api-spec
+      produces:
+        - text/x-yaml
+      responses:
+        200:
+          description: Logger response
+          schema:
+              type: guid
 definitions:
   APIStatus:
     description: |
