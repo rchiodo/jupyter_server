@@ -4,6 +4,9 @@
 # Distributed under the terms of the Modified BSD License.
 
 import json
+
+from tornado.websocket import WebSocketHandler
+from jupyter_server.base.zmqhandlers import WebSocketMixin
 import os
 
 from tornado import web
@@ -48,17 +51,22 @@ class APIStatusHandler(APIHandler):
         }
         self.finish(json.dumps(model, sort_keys=True))
 
-class LoggerHandler(APIHandler):
+class LogCreateHandler(APIHandler):
     @web.authenticated
-    async def get(self):
+    async def post(self):
         model = {
             'test': True
         }
         self.finish(json.dumps(model, sort_keys=True))
 
 
+class LoggerHandler(WebSocketMixin, WebSocketHandler)
+
+
+
 default_handlers = [
     (r"/api/spec.yaml", APISpecHandler),
     (r"/api/status", APIStatusHandler),
-    (r"/api/logger", LoggerHandler),
+    (r"/api/logger", LogCreateHandler),
+    (r"/api/logger/%s" % _kernel_id_regex, LoggerHandler),
 ]
