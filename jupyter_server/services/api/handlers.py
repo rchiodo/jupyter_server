@@ -4,6 +4,8 @@
 # Distributed under the terms of the Modified BSD License.
 
 import json
+from logging import Formatter, StreamHandler
+import logging
 
 from tornado.websocket import WebSocketHandler
 from jupyter_server.base.zmqhandlers import WebSocketMixin
@@ -51,22 +53,47 @@ class APIStatusHandler(APIHandler):
         }
         self.finish(json.dumps(model, sort_keys=True))
 
-class LogCreateHandler(APIHandler):
-    @web.authenticated
-    async def post(self):
+class CustomLogger(StreamHandler):
+    def __init__(self, callback):
+        StreamHandler.__init__(self)
+        self.setLevel(logging.INFO)
+        self.setFormatter(Formatter('DUDE %(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+        self.callback = callback
+
+    def emit(self, record):
+        msg = self.format(record)
+        self.callback(msg)
+
+class LoggerWebSocketHandler(WebSocketMixin, WebSocketHandler):
+    # self.write_msg to reply
+    # self.on_message to listen
+    # one of these will be created when the connection is created I think
+    # How does more than one client connect?
+    async def get(self):
+        await super(WebSocketHandler, self).get()
+        # Add logger
+        self.logger = CustomLogger(self.on_log)
+        self.application.log.addHandler(self.logger)
+
+    def on_close(self):
+        self.application.log.removeHandler(self.logger)
+
+    def on_log(self, msg):
+        # Same format as a stream stdout
         model = {
-            'test': True
+            'header': {
+                'msg_type': 'stream'
+            },
+            'content': {
+                'text': msg
+            }
         }
-        self.finish(json.dumps(model, sort_keys=True))
-
-
-class LoggerHandler(WebSocketMixin, WebSocketHandler)
+        self.write_msg(json.dumps(model, sort_keys=True))
 
 
 
 default_handlers = [
     (r"/api/spec.yaml", APISpecHandler),
     (r"/api/status", APIStatusHandler),
-    (r"/api/logger", LogCreateHandler),
-    (r"/api/logger/%s" % _kernel_id_regex, LoggerHandler),
+    (r"/api/logger", LoggerWebSocketHandler)
 ]
