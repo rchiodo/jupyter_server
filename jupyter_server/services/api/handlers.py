@@ -8,6 +8,7 @@ from logging import Formatter, StreamHandler
 import logging
 
 from tornado.websocket import WebSocketHandler
+from traitlets.config.configurable import LoggingConfigurable
 from jupyter_server.base.zmqhandlers import WebSocketMixin
 import os
 
@@ -64,19 +65,22 @@ class CustomLogger(StreamHandler):
         msg = self.format(record)
         self.callback(msg)
 
-class LoggerWebSocketHandler(WebSocketMixin, WebSocketHandler):
-    # self.write_msg to reply
+class LoggerWebSocketHandler(WebSocketMixin, WebSocketHandler, LoggingConfigurable):
+    # self.write_message to reply
     # self.on_message to listen
     # one of these will be created when the connection is created I think
     # How does more than one client connect?
     async def get(self):
-        await super(WebSocketHandler, self).get()
         # Add logger
         self.logger = CustomLogger(self.on_log)
-        self.application.log.addHandler(self.logger)
+        self.log.addHandler(self.logger)
+
+        # Handle the base get
+        res = super(LoggerWebSocketHandler, self).get()
+        await res
 
     def on_close(self):
-        self.application.log.removeHandler(self.logger)
+        self.log.removeHandler(self.logger)
 
     def on_log(self, msg):
         # Same format as a stream stdout
@@ -88,7 +92,7 @@ class LoggerWebSocketHandler(WebSocketMixin, WebSocketHandler):
                 'text': msg
             }
         }
-        self.write_msg(json.dumps(model, sort_keys=True))
+        self.write_message(json.dumps(model, sort_keys=True))
 
 
 
