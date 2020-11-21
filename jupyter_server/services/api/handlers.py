@@ -67,7 +67,7 @@ class CustomLogger(StreamHandler):
         self.callback(msg)
 
 class LoggerWebSocketHandler(WebSocketMixin, WebSocketHandler, JupyterHandler):
-    def pre_get(self):
+    def authenticate(self):
         """Run before finishing the GET request
         """
         # authenticate the request before opening the websocket
@@ -75,18 +75,14 @@ class LoggerWebSocketHandler(WebSocketMixin, WebSocketHandler, JupyterHandler):
             self.log.warning("Couldn't authenticate WebSocket connection")
             raise web.HTTPError(403)
 
-        if self.get_argument('session_id', False):
-            self.session.session = cast_unicode(self.get_argument('session_id'))
-        else:
-            self.log.warning("No session ID specified")
 
     # self.write_message to reply
     # self.on_message to listen
     # one of these will be created when the connection is created I think
     # How does more than one client connect?
     async def get(self):
-        # Do a pre_get to authenticate
-        self.pre_get()
+        # Authenticate before creating the logger
+        self.authenticate()
 
         # Add logger
         self.logger = CustomLogger(self.on_log)
